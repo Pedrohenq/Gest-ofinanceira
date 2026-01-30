@@ -1,0 +1,14 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===== REGRA LEVE E FUNCIONAL =====
+    // Qualquer usuário autenticado pode ler e escrever em qualquer lugar
+    // USE APENAS PARA TESTAR SE ESTÁ FUNCIONANDO!
+    
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
