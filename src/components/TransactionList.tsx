@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Trash2, TrendingUp, TrendingDown, Filter } from 'lucide-react';
+import { Pencil, Trash2, TrendingUp, TrendingDown, Filter } from 'lucide-react';
 import { useTransactions } from '@/contexts/TransactionContext';
 import { Transaction } from '@/types';
+import { EditTransactionModal } from './EditTransactionModal';
 
 export function TransactionList() {
   const { transactions, deleteTransaction } = useTransactions();
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   console.log('📋 TransactionList - Transações recebidas:', transactions);
 
@@ -33,6 +35,14 @@ export function TransactionList() {
         alert('Erro ao excluir transação');
       }
     }
+  }
+
+  function handleEdit(transaction: Transaction) {
+    setEditingTransaction(transaction);
+  }
+
+  function handleCloseEdit() {
+    setEditingTransaction(null);
   }
 
   return (
@@ -100,12 +110,19 @@ export function TransactionList() {
                 key={transaction.id}
                 transaction={transaction}
                 onDelete={handleDelete}
+                onEdit={handleEdit}
                 formatCurrency={formatCurrency}
               />
             ))}
           </div>
         )}
       </div>
+
+      <EditTransactionModal
+        isOpen={Boolean(editingTransaction)}
+        transaction={editingTransaction}
+        onClose={handleCloseEdit}
+      />
     </div>
   );
 }
@@ -113,10 +130,11 @@ export function TransactionList() {
 interface TransactionItemProps {
   transaction: Transaction;
   onDelete: (id: string, description: string) => void;
+  onEdit: (transaction: Transaction) => void;
   formatCurrency: (value: number) => string;
 }
 
-function TransactionItem({ transaction, onDelete, formatCurrency }: TransactionItemProps) {
+function TransactionItem({ transaction, onDelete, onEdit, formatCurrency }: TransactionItemProps) {
   const isIncome = transaction.type === 'income';
 
   return (
@@ -158,13 +176,20 @@ function TransactionItem({ transaction, onDelete, formatCurrency }: TransactionI
           </div>
         </div>
 
-        {/* Delete Button */}
-        <button
-          onClick={() => onDelete(transaction.id, transaction.description)}
-          className="flex-shrink-0 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition opacity-0 group-hover:opacity-100"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="flex flex-shrink-0 items-center gap-2 opacity-0 group-hover:opacity-100 transition">
+          <button
+            onClick={() => onEdit(transaction)}
+            className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onDelete(transaction.id, transaction.description)}
+            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

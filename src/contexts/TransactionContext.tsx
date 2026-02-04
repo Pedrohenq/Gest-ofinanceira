@@ -6,6 +6,7 @@ import {
   doc,
   onSnapshot,
   query,
+  updateDoc,
   where,
   Timestamp
 } from 'firebase/firestore';
@@ -18,6 +19,7 @@ interface TransactionContextType {
   loading: boolean;
   summary: FinancialSummary;
   addTransaction: (data: CreateTransactionData) => Promise<void>;
+  updateTransaction: (id: string, data: CreateTransactionData) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   filterByMonth: (month: number, year: number) => Transaction[];
 }
@@ -145,6 +147,22 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     await deleteDoc(doc(db, 'transactions', id));
   }
 
+  async function updateTransaction(id: string, data: CreateTransactionData) {
+    if (!currentUser) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    const docData = {
+      type: data.type,
+      amount: Number(data.amount),
+      category: data.category,
+      description: data.description,
+      date: data.date
+    };
+
+    await updateDoc(doc(db, 'transactions', id), docData);
+  }
+
   function filterByMonth(month: number, year: number): Transaction[] {
     return transactions.filter((transaction) => {
       const transactionDate = new Date(transaction.date);
@@ -160,6 +178,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     loading,
     summary,
     addTransaction,
+    updateTransaction,
     deleteTransaction,
     filterByMonth
   };
