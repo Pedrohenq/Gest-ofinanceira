@@ -1,30 +1,47 @@
-import { useState, FormEvent } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { X, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTransactions } from '@/contexts/TransactionContext';
-import { TransactionType } from '@/types';
+import { Transaction, TransactionType } from '@/types';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/utils/transactionCategories';
 
-interface AddTransactionModalProps {
+interface EditTransactionModalProps {
   isOpen: boolean;
+  transaction: Transaction | null;
   onClose: () => void;
 }
 
-export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProps) {
+export function EditTransactionModal({ isOpen, transaction, onClose }: EditTransactionModalProps) {
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { addTransaction } = useTransactions();
+  const { updateTransaction } = useTransactions();
 
-  const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  useEffect(() => {
+    if (!transaction || !isOpen) return;
+
+    setType(transaction.type);
+    setAmount(String(transaction.amount));
+    setCategory(transaction.category);
+    setDescription(transaction.description);
+    setDate(transaction.date);
+    setError('');
+  }, [transaction, isOpen]);
+
+  const categories = useMemo(
+    () => (type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES),
+    [type]
+  );
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
-    
+
+    if (!transaction) return;
+
     if (!amount || !category || !description) {
       setError('Preencha todos os campos obrigatórios');
       return;
@@ -37,41 +54,30 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
 
     try {
       setLoading(true);
-      console.log('Iniciando adição de transação...');
-      
-      await addTransaction({
+
+      await updateTransaction(transaction.id, {
         type,
         amount: parseFloat(amount),
         category,
         description,
         date
       });
-      
-      console.log('Transação adicionada, resetando formulário...');
-      
-      // Reset form
-      setAmount('');
-      setCategory('');
-      setDescription('');
-      setDate(new Date().toISOString().split('T')[0]);
-      setError('');
+
       onClose();
     } catch (error: any) {
-      console.error('Erro capturado no componente:', error);
-      setError(error.message || 'Erro ao adicionar transação. Tente novamente.');
+      setError(error.message || 'Erro ao atualizar transação. Tente novamente.');
     } finally {
       setLoading(false);
     }
   }
 
-  if (!isOpen) return null;
+  if (!isOpen || !transaction) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="sticky top-0 bg-white border-b border-slate-200 p-6 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-900">Nova Transação</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Editar Transação</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-lg transition"
@@ -80,9 +86,7 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
               <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -90,7 +94,6 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
             </div>
           )}
 
-          {/* Type Selection */}
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -131,7 +134,6 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
             </button>
           </div>
 
-          {/* Amount */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Valor
@@ -151,7 +153,6 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
             </div>
           </div>
 
-          {/* Category */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Categoria
@@ -168,7 +169,6 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
             </select>
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Descrição
@@ -182,7 +182,6 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
             />
           </div>
 
-          {/* Date */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Data
@@ -195,7 +194,6 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
             />
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
@@ -205,7 +203,7 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
                 : 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 shadow-red-200'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            {loading ? 'Adicionando...' : 'Adicionar Transação'}
+            {loading ? 'Salvando...' : 'Salvar alterações'}
           </button>
         </form>
       </div>
